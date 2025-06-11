@@ -1,0 +1,480 @@
+.nicepay-ewallet-container {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f8f8;
+    border-radius: 4px;
+}
+.nicepay-ewallet-header {
+    margin-bottom: 15px;
+    text-align: center;
+    padding: 10px 0;
+}
+.nicepay-ewallet-icon {
+    max-height: 150px;
+    width: auto;
+    display: inline-block;
+    margin: 10px 0;
+}
+.nicepay-ewallet-select {
+    margin: 10px 0;
+}
+.nicepay-ewallet-select label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+.nicepay-ewallet-logos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+.nicepay-ewallet-logos img {
+    height: 30px;
+    width: auto;
+}
+.nicepay-ewallet-select select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+.nicepay-cc-container {
+    margin: 15px 0;
+    padding: 15px;
+    background: #f8f8f8;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+}
+
+.nicepay-cc-header {
+    margin-bottom: 15px;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.nicepay-cc-icon {
+    max-height: 60px;
+    width: auto;
+    display: block;
+    margin: 0 auto 15px;
+}
+
+.nicepay-cc-logos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.nicepay-cc-logos img {
+    height: 30px;
+    width: auto;
+}
+
+.nicepay-cc-select {
+    margin: 10px 0;
+}
+
+.nicepay-cc-select label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.nicepay-cc-select select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.nicepay-cc-single-option {
+    text-align: center;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.nicepay-cc-error {
+    padding: 10px;
+    background-color: #ffecec;
+    color: #d63638;
+    border-left: 4px solid #d63638;
+    margin-bottom: 15px;
+}
+
+/* Untuk mode block checkout */
+.wc-block-components-payment-method-icons .wc-block-components-payment-method-icon--nicepay-cc {
+    background-image: url('../images/cc-logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+}
+
+/* Untuk halaman thank you */
+.woocommerce-order-received .order_details {
+    margin-bottom: 2em;
+    padding: 1em;
+    border: 1px solid rgba(0,0,0,0.1);
+    border-radius: 4px;
+}
+
+/* Untuk responsif */
+@media (max-width: 768px) {
+    .nicepay-cc-logos {
+        flex-wrap: wrap;
+    }
+    
+    .nicepay-cc-logos img {
+        height: 25px;
+    }
+}
+/**
+ * NICEPay Credit Card Block Checkout styling
+ */
+
+/* Container utama */
+.wc-block-checkout__payment-method .wc-block-components-radio-control__option-checked.wc-block-components-radio-control__input-wrapper {
+    box-shadow: 0 0 0 2px #007cba;
+}
+
+/* Header dan logo */
+.nicepay-cc-container {
+    padding: 15px;
+    background-color: #f8f8f8;
+    border-radius: 5px;
+    margin-top: 10px;
+    border: 1px solid #ddd;
+}
+
+.nicepay-cc-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.nicepay-cc-icon {
+    max-height: 50px;
+    margin-bottom: 10px;
+}
+
+.nicepay-cc-logos {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.nicepay-cc-logos img {
+    height: 25px;
+    width: auto;
+}
+
+/* Opsi Cicilan */
+.nicepay-cc-block-select {
+    margin-bottom: 15px;
+}
+
+.components-base-control__label {
+    font-weight: 600 !important;
+    margin-bottom: 5px !important;
+    display: block !important;
+}
+
+.components-select-control__input {
+    width: 100% !important;
+    padding: 8px !important;
+    border-radius: 4px !important;
+    border: 1px solid #ddd !important;
+}
+
+.nicepay-cc-block-single-option {
+    background-color: #fff;
+    padding: 10px;
+    text-align: center;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    margin-bottom: 15px;
+}
+
+/* Deskripsi */
+.nicepay-cc-block-description {
+    font-size: 13px;
+    color: #666;
+    margin-top: 10px;
+}
+
+/* Tampilan Payment Method pada daftar metode pembayaran */
+.wc-block-components-payment-method-icons .wc-block-components-payment-method-icon--nicepay-cc {
+    background-image: url('../images/cc-logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 32px;
+    height: 32px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nicepay-cc-logos {
+        flex-wrap: wrap;
+    }
+    
+    .nicepay-cc-logos img {
+        height: 20px;
+    }
+}
+/**
+ * NICEPay Admin Styling
+ */
+
+/* Header */
+.nicepay-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 20px 0;
+    border-bottom: 2px solid #0073aa;
+}
+
+.nicepay-logo img {
+    max-height: 60px;
+    margin-right: 20px;
+}
+
+.nicepay-info h1 {
+    margin: 0;
+    color: #23282d;
+    font-size: 2em;
+}
+
+.nicepay-version {
+    color: #666;
+    font-style: italic;
+    margin: 5px 0 0 0;
+}
+
+/* Description */
+.nicepay-description {
+    background: #f1f1f1;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.nicepay-description p {
+    margin: 0;
+    color: #333;
+}
+
+/* Payment Methods Table */
+.nicepay-payment-methods {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.nicepay-payment-methods th,
+.nicepay-payment-methods td {
+    padding: 20px;
+    vertical-align: top;
+}
+
+.nicepay-payment-methods th {
+    background: #f9f9f9;
+    border-bottom: 1px solid #eee;
+    width: 200px;
+}
+
+.nicepay-payment-methods td {
+    border-bottom: 1px solid #eee;
+}
+
+.nicepay-payment-methods tr:last-child th,
+.nicepay-payment-methods tr:last-child td {
+    border-bottom: none;
+}
+
+/* Payment Method Icons */
+.payment-method-icon {
+    max-height: 32px;
+    vertical-align: middle;
+    margin-right: 10px;
+}
+
+.nicepay-payment-methods th label {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    font-size: 16px;
+    color: #23282d;
+}
+
+/* Payment Method Links */
+.payment-method-link {
+    margin-top: 10px;
+}
+
+.payment-method-link .button-secondary {
+    background: #0073aa;
+    color: #fff;
+    border: 1px solid #0073aa;
+    text-decoration: none;
+    padding: 5px 12px;
+    border-radius: 3px;
+    font-size: 12px;
+}
+
+.payment-method-link .button-secondary:hover {
+    background: #005a87;
+    border-color: #005a87;
+}
+
+/* Checkboxes */
+.nicepay-payment-methods input[type="checkbox"] {
+    margin-right: 8px;
+    transform: scale(1.2);
+}
+
+.nicepay-payment-methods label {
+    font-weight: 500;
+    color: #333;
+}
+
+.nicepay-payment-methods .description {
+    color: #666;
+    font-style: italic;
+    margin-top: 5px;
+    font-size: 13px;
+}
+
+/* Advanced Settings */
+.form-table {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.form-table th,
+.form-table td {
+    padding: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.form-table th {
+    background: #f9f9f9;
+    font-weight: 600;
+    width: 200px;
+}
+
+.form-table tr:last-child th,
+.form-table tr:last-child td {
+    border-bottom: none;
+}
+
+/* Submit Button */
+.submit {
+    text-align: center;
+    margin: 30px 0;
+}
+
+.submit input[type="submit"] {
+    background: #0073aa;
+    border-color: #0073aa;
+    color: #fff;
+    font-size: 16px;
+    padding: 10px 30px;
+    height: auto;
+    border-radius: 5px;
+}
+
+.submit input[type="submit"]:hover {
+    background: #005a87;
+    border-color: #005a87;
+}
+
+/* Footer */
+.nicepay-footer {
+    background: #f9f9f9;
+    padding: 20px;
+    border-radius: 5px;
+    margin-top: 30px;
+    border-left: 4px solid #0073aa;
+}
+
+.nicepay-footer h3 {
+    margin-top: 0;
+    color: #23282d;
+}
+
+.nicepay-footer ul {
+    margin: 10px 0 0 20px;
+}
+
+.nicepay-footer li {
+    margin-bottom: 5px;
+}
+
+.nicepay-footer a {
+    color: #0073aa;
+    text-decoration: none;
+}
+
+.nicepay-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Notice Styling */
+.notice.notice-warning {
+    border-left-color: #ffb900;
+}
+
+.notice.notice-warning p {
+    color: #333;
+}
+
+.notice.notice-warning a {
+    color: #0073aa;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.notice.notice-warning a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .nicepay-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .nicepay-logo {
+        margin-bottom: 15px;
+    }
+    
+    .nicepay-payment-methods th,
+    .nicepay-payment-methods td {
+        padding: 15px 10px;
+    }
+    
+    .nicepay-payment-methods th {
+        width: auto;
+    }
+    
+    .nicepay-payment-methods th label {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .payment-method-icon {
+        margin: 0 0 10px 0;
+    }
+}
