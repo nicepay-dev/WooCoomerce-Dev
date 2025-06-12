@@ -1,3 +1,4 @@
+<!-- file class untuk proses pembayaran va class-wc-gateway-nicepay-va.php -->
 <?php
 if (!defined('ABSPATH')) {
     exit;
@@ -80,8 +81,8 @@ class WC_Gateway_Nicepay_VA extends WC_Nicepay_Payment_Gateway {
         }
         
         // Tambahkan action untuk AJAX
-        add_action('wp_ajax_set_nicepay_bank', array($this, 'handle_set_nicepay_bank'));
-        add_action('wp_ajax_nopriv_set_nicepay_bank', array($this, 'handle_set_nicepay_bank'));
+        add_action('wp_ajax_set_nicepay_bank', 'handle_nicepay_bank_selection');
+        add_action('wp_ajax_nopriv_set_nicepay_bank', 'handle_nicepay_bank_selection');
         
         // Tambahkan action untuk halaman terima kasih
         add_action('woocommerce_thankyou_' . $this->id, array($this, 'thankyou_page'));

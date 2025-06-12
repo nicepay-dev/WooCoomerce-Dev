@@ -1,3 +1,4 @@
+<!-- File utama plugin index.php -->
 <?php
 /**
  * Plugin Name: NICEPay Payment Gateway for WooCommerce

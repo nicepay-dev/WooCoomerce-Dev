@@ -86,7 +86,7 @@ class WC_Nicepay_Admin {
         <div class="wrap">
             <div class="nicepay-header">
                 <div class="nicepay-logo">
-                    <img src="<?php echo plugins_url('assets/images/nicepay-logo.png', dirname(dirname(__FILE__))); ?>" alt="NICEPay" />
+                    <img src="<?php echo plugins_url('assets/images/logo-nicepay.jpg', dirname(dirname(__FILE__))); ?>" alt="NICEPay" />
                 </div>
                 <div class="nicepay-info">
                     <h1><?php _e('NICEPay Payment Gateway', 'nicepay-wc'); ?></h1>
@@ -118,34 +118,39 @@ class WC_Nicepay_Admin {
                 <table class="form-table nicepay-payment-methods">
                     <tbody>
                         <!-- Virtual Account -->
-                        <tr>
+                       <tr>
                             <th scope="row">
-                                <label for="nicepay_enable_va">
-                                    <img src="<?php echo plugins_url('assets/images/va-logo.jpg', dirname(dirname(__FILE__))); ?>" alt="Virtual Account" class="payment-method-icon" />
-                                    <?php _e('Virtual Account', 'nicepay-wc'); ?>
-                                </label>
+                                <div class="payment-method-header">
+                                    <img src="<?php echo plugins_url('assets/images/vagogo.jpg', dirname(dirname(__FILE__))); ?>" alt="Virtual Account" class="payment-method-icon" />
+                                     <span><?php _e('Virtual Account', 'nicepay-wc'); ?></span>
+                                </div>
                             </th>
                             <td>
-                                <fieldset>
-                                    <label for="nicepay_enable_va">
-                                        <input type="checkbox" id="nicepay_enable_va" name="nicepay_enable_va" value="yes" <?php checked($va_enabled, 'yes'); ?> />
-                                        <?php _e('Enable Virtual Account payment method', 'nicepay-wc'); ?>
-                                    </label>
-                                    <p class="description"><?php _e('Allow customers to pay using NICEPay Virtual Account payment methods.', 'nicepay-wc'); ?></p>
-                                    <p class="payment-method-link">
-                                        <a href="<?php echo admin_url('admin.php?page=wc-settings&tab=checkout&section=nicepay_va'); ?>" class="button-secondary">
-                                            <?php _e('Configure Settings', 'nicepay-wc'); ?>
-                                        </a>
-                                    </p>
-                                </fieldset>
+                                <div class="payment-method-container">
+                                    <div class="payment-method-content">
+                                        <fieldset>
+                                            <label for="nicepay_enable_va">
+                                                <input type="checkbox" id="nicepay_enable_va" name="nicepay_enable_va" value="yes" <?php checked($va_enabled, 'yes'); ?> />
+                                                <?php _e('Enable Virtual Account payment method', 'nicepay-wc'); ?>
+                                            </label>
+                                            <p class="description"><?php _e('Allow customers to pay using NICEPay Virtual Account payment methods.', 'nicepay-wc'); ?></p>
+                                            <p class="payment-method-link">
+                                                <a href="<?php echo admin_url('admin.php?page=wc-settings&tab=checkout&section=nicepay_va'); ?>" class="button-secondary">
+                                                    <?php _e('Configure Settings', 'nicepay-wc'); ?>
+                                                </a>
+                                            </p>
+                                        </fieldset>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
+
 
                         <!-- Credit Card -->
                         <tr>
                             <th scope="row">
                                 <label for="nicepay_enable_cc">
-                                    <img src="<?php echo plugins_url('assets/images/nicepaycc.png', dirname(dirname(__FILE__))); ?>" alt="Credit Card" class="payment-method-icon" />
+                                    <img src="<?php echo plugins_url('assets/images/ccgogo.jpg', dirname(dirname(__FILE__))); ?>" alt="Credit Card" class="payment-method-icon" />
                                     <?php _e('Credit Card', 'nicepay-wc'); ?>
                                 </label>
                             </th>
@@ -169,7 +174,7 @@ class WC_Nicepay_Admin {
                         <tr>
                             <th scope="row">
                                 <label for="nicepay_enable_ewallet">
-                                    <img src="<?php echo plugins_url('assets/images/ewallet-logo.jpg', dirname(dirname(__FILE__))); ?>" alt="E-Wallet" class="payment-method-icon" />
+                                    <img src="<?php echo plugins_url('assets/images/ewalletgogo.jpg', dirname(dirname(__FILE__))); ?>" alt="E-Wallet" class="payment-method-icon" />
                                     <?php _e('E-Wallet', 'nicepay-wc'); ?>
                                 </label>
                             </th>

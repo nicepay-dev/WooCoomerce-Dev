@@ -108,12 +108,12 @@
 }
 
 /* Untuk mode block checkout */
-.wc-block-components-payment-method-icons .wc-block-components-payment-method-icon--nicepay-cc {
+/* .wc-block-components-payment-method-icons .wc-block-components-payment-method-icon--nicepay-cc {
     background-image: url('../images/cc-logo.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-}
+} */
 
 /* Untuk halaman thank you */
 .woocommerce-order-received .order_details {
@@ -210,14 +210,14 @@
 }
 
 /* Tampilan Payment Method pada daftar metode pembayaran */
-.wc-block-components-payment-method-icons .wc-block-components-payment-method-icon--nicepay-cc {
+/* .wc-block-components-payment-method-icons .wc-block-components-payment-method-icon--nicepay-cc {
     background-image: url('../images/cc-logo.png');
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
     width: 32px;
     height: 32px;
-}
+} */
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -303,9 +303,9 @@
 
 /* Payment Method Icons */
 .payment-method-icon {
-    max-height: 32px;
+    max-height: 5px;
     vertical-align: middle;
-    margin-right: 10px;
+    margin-right: 5px;
 }
 
 .nicepay-payment-methods th label {
@@ -474,7 +474,7 @@
         text-align: center;
     }
     
-    .payment-method-icon {
+    /* .payment-method-icon {
         margin: 0 0 10px 0;
-    }
+    } */
 }
