@@ -1,3 +1,4 @@
+<!-- file class untuk proses pembayaran va class-wc-gateway-nicepay-va.php -->
 <?php
 if (!defined('ABSPATH')) {
     exit;
@@ -78,7 +79,11 @@ class WC_Gateway_Nicepay_VA extends WC_Nicepay_Payment_Gateway {
             @ini_set('display_startup_errors', 1);
             @error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING & ~E_DEPRECATED & ~E_USER_DEPRECATED);
         }
-        $this->register_ajax_handlers();
+        
+        // Tambahkan action untuk AJAX
+        add_action('wp_ajax_set_nicepay_bank', 'handle_nicepay_bank_selection');
+        add_action('wp_ajax_nopriv_set_nicepay_bank', 'handle_nicepay_bank_selection');
+        
         // Tambahkan action untuk halaman terima kasih
         add_action('woocommerce_thankyou_' . $this->id, array($this, 'thankyou_page'));
         
@@ -92,24 +97,7 @@ class WC_Gateway_Nicepay_VA extends WC_Nicepay_Payment_Gateway {
 
         error_log("NICEPay VA gateway initialized");
     }
-     /**
-     * Set API endpoints based on environment
-     */
-    private function set_api_endpoints() {
-        if ($this->environment === 'production') {
-            $this->api_endpoints = array(
-                'access_token' => 'https://www.nicepay.co.id/nicepay/api/oauth/token',
-                'create_va' => 'https://www.nicepay.co.id/nicepay/api/v1.0/transfer-va/create-va',
-                'check_status_url' => 'https://www.nicepay.co.id/nicepay/api/v1.0/transfer-va/status'
-            );
-        } else {
-            $this->api_endpoints = array(
-                'access_token' => 'https://dev.nicepay.co.id/nicepay/api/oauth/token',
-                'create_va' => 'https://dev.nicepay.co.id/nicepay/api/v1.0/transfer-va/create-va',
-                'check_status_url' => 'https://dev.nicepay.co.id/nicepay/api/v1.0/transfer-va/status'
-            );
-        }
-    }
+    
     // public function log($message, $type = 'info') {
     //     if (!class_exists('NICEPay_Log_Manager')) {
     //         $debug_setting = $this->get_option('debug');
@@ -138,12 +126,6 @@ class WC_Gateway_Nicepay_VA extends WC_Nicepay_Payment_Gateway {
     //         NICEPay_Log_Manager::log($message, $type);
     //     }
     // }
- private function register_ajax_handlers() {
-        add_action('wp_ajax_set_nicepay_bank', array($this, 'handle_set_nicepay_bank'));
-        add_action('wp_ajax_nopriv_set_nicepay_bank', array($this, 'handle_set_nicepay_bank'));
-        error_log('NICEPay VA AJAX handlers registered');
-    }
-
     public function is_available() {
         // Debug logs
         error_log('NICEPay VA is_available check started');
@@ -417,33 +399,20 @@ class WC_Gateway_Nicepay_VA extends WC_Nicepay_Payment_Gateway {
      * Handle AJAX request to set selected bank
      */
     public function handle_set_nicepay_bank() {
-        error_log("handle_set_nicepay_bank called with data: " . print_r($_POST, true));
-        
-        // Start output buffering to prevent any unwanted output
         ob_start();
-         try {
-            // Verify nonce for security - FIX: Tambahkan nonce verification
-            if (!wp_verify_nonce($_POST['security'] ?? '', 'nicepay-va-nonce')) {
-                throw new Exception('Invalid security token');
-            }
-            
-            if (!isset($_POST['bank_code'])) {
-                throw new Exception('Bank code not provided');
-            }
-            
+        error_log("handle_set_nicepay_bank called" . print_r($_POST, true));
+        try{
+        if (isset($_POST['bank_code'])) {
             $bank_code = sanitize_text_field($_POST['bank_code']);
             $valid_banks = array_column($this->get_bank_list(), 'code');
             
             if (!in_array($bank_code, $valid_banks)) {
                 error_log("Invalid bank code: " . $bank_code);
-                throw new Exception('Invalid bank code');
+                wp_send_json_error('Invalid bank code');
+                wp_die();
             }
 
             // Set ke session
-            if (!WC()->session) {
-                throw new Exception('WC Session not available');
-            }
-            
             WC()->session->set('nicepay_selected_bank', $bank_code);
             error_log("Bank code saved to session: " . $bank_code);
 
@@ -457,24 +426,29 @@ class WC_Gateway_Nicepay_VA extends WC_Nicepay_Payment_Gateway {
                     error_log("Bank code saved to order meta: " . $bank_code);
                 }
             }
-            
-            // Clean output buffer and send success response
             ob_clean();
             wp_send_json_success([
                 'message' => 'Bank code saved: ' . $bank_code,
                 'bank_code' => $bank_code
             ]);
-            
-        } catch (Exception $e) {
-            error_log("Error in handle_set_nicepay_bank: " . $e->getMessage());
-            // Clean output buffer and send error response
+        }else {
+            // Bersihkan buffer output
             ob_clean();
-            wp_send_json_error($e->getMessage());
+            
+            // Kirim respons error
+            wp_send_json_error('Bank code not provided');
         }
+    } catch (Exception $e) {
+        // Bersihkan buffer output
+        ob_clean();
         
-        // Ensure we exit properly
-        wp_die();
+        // Kirim respons error
+        wp_send_json_error($e->getMessage());
     }
+    
+    // Pastikan untuk keluar
+    wp_die();
+}
 
     /**
      * Payment fields displayed on the checkout page
@@ -498,7 +472,7 @@ class WC_Gateway_Nicepay_VA extends WC_Nicepay_Payment_Gateway {
             </div>
             <div class="nicepay-va-bank-select">
                 <label for="nicepay-bank-select"><?php _e('Select Bank:', 'nicepay-wc'); ?></label>
-                <select name="nicepay_bank" id="nicepay-bank-select" required>
+                <select name="nicepay_bank" id="nicepay-bank-select">
                     <option value=""><?php _e('Select Bank', 'nicepay-wc'); ?></option>
                     <?php foreach ($this->get_bank_list() as $bank): ?>
                         <option value="<?php echo esc_attr($bank['code']); ?>" 
@@ -518,188 +492,59 @@ class WC_Gateway_Nicepay_VA extends WC_Nicepay_Payment_Gateway {
     /**
      * Process the payment and return the result
      */
-   public function process_payment($order_id) {
-    error_log("Starting process_payment for order $order_id");
-    error_log("POST data: " . print_r($_POST, true));
-    
-    $order = wc_get_order($order_id);
-    
-    // FITUR 1: Detect checkout mode
-    $checkout_mode = $this->detect_checkout_mode();
-    error_log("Checkout mode detected: " . $checkout_mode);
-    
-    // FITUR 2: Get selected bank dengan multiple fallback
-    $selected_bank = $this->get_selected_bank_from_multiple_sources($order);
-    
-    // FITUR 3: Enhanced validation
-    if (empty($selected_bank)) {
-        error_log("No bank selected - validation failed in $checkout_mode mode");
+    public function process_payment($order_id) {
+        error_log("Starting process_payment for order $order_id");
+        $order = wc_get_order($order_id);
         
-        $error_message = __('Please select a bank for payment', 'nicepay-wc');
+        // Get selected bank
+        $selected_bank = isset($_POST['nicepay_bank']) ? 
+            sanitize_text_field($_POST['nicepay_bank']) : 
+            WC()->session->get('nicepay_selected_bank');
         
-        // Mode-specific error handling
-        if ($checkout_mode === 'blocks') {
-            // WooCommerce Blocks error format
-            wc_add_notice($error_message, 'error');
-            return new WP_Error('payment_error', $error_message);
-        } else {
-            // Classic checkout error format
-            wc_add_notice($error_message, 'error');
+        error_log("Selected bank: " . ($selected_bank ?: 'Not set'));
+        
+        if (!$selected_bank) {
+            wc_add_notice(__('Please select a bank for payment', 'nicepay-wc'), 'error');
             return array(
                 'result'   => 'failure',
                 'redirect' => '',
-                'messages' => $error_message
+            );
+        }
+        
+        // Save selected bank to session
+        WC()->session->set('nicepay_selected_bank', $selected_bank);
+        
+        try {
+            // Get access token
+            $access_token = $this->get_access_token();
+            
+            // Create virtual account
+            $va_data = $this->create_virtual_account($order, $access_token, $selected_bank);
+            
+            if (isset($va_data['virtualAccountData'])) {
+                // Handle successful VA creation
+                $this->handle_va_creation_response($order, $va_data);
+                
+                // Empty cart
+                WC()->cart->empty_cart();
+                
+                // Return success
+                return array(
+                    'result'   => 'success',
+                    'redirect' => $this->get_return_url($order),
+                );
+            } else {
+                throw new Exception(__('Failed to create Virtual Account', 'nicepay-wc'));
+            }
+        } catch (Exception $e) {
+            wc_add_notice(__('Payment error:', 'nicepay-wc') . ' ' . $e->getMessage(), 'error');
+            error_log("Payment error: " . $e->getMessage());
+            return array(
+                'result'   => 'failure',
+                'redirect' => '',
             );
         }
     }
-    
-    // FITUR 4: Validate bank code
-    $valid_banks = array_column($this->get_bank_list(), 'code');
-    if (!in_array($selected_bank, $valid_banks)) {
-        error_log("Invalid bank code: " . $selected_bank . " in $checkout_mode mode");
-        $error_message = __('Invalid bank selected', 'nicepay-wc');
-        
-        wc_add_notice($error_message, 'error');
-        return array(
-            'result'   => 'failure',
-            'redirect' => '',
-        );
-    }
-    
-    error_log("Valid bank selected: " . $selected_bank . " in $checkout_mode mode");
-    
-    // FITUR 5: Save bank selection dengan mode context
-    $this->save_bank_selection($order, $selected_bank, $checkout_mode);
-    
-    try {
-        // FITUR 6: Get access token
-        $access_token = $this->get_access_token();
-        error_log("Access token obtained successfully in $checkout_mode mode");
-        
-        // FITUR 7: Create virtual account
-        $va_data = $this->create_virtual_account($order, $access_token, $selected_bank);
-        error_log("VA creation response in $checkout_mode mode: " . json_encode($va_data));
-        
-        if (isset($va_data['virtualAccountData'])) {
-            // Handle successful VA creation
-            $this->handle_va_creation_response($order, $va_data);
-            
-            // Empty cart
-            WC()->cart->empty_cart();
-            
-            error_log("Payment processing successful for order $order_id in $checkout_mode mode");
-            
-            // FITUR 8: Mode-specific success response
-            return $this->get_success_response($order, $checkout_mode);
-        } else {
-            error_log("VA creation failed in $checkout_mode mode: " . json_encode($va_data));
-            throw new Exception(__('Failed to create Virtual Account', 'nicepay-wc'));
-        }
-    } catch (Exception $e) {
-        error_log("Payment error for order $order_id in $checkout_mode mode: " . $e->getMessage());
-        wc_add_notice(__('Payment error:', 'nicepay-wc') . ' ' . $e->getMessage(), 'error');
-        
-        return array(
-            'result'   => 'failure',
-            'redirect' => '',
-        );
-    }
-}
-
-private function detect_checkout_mode() {
-    // Check if it's WooCommerce Blocks checkout
-    if (function_exists('has_block') && has_block('woocommerce/checkout')) {
-        return 'blocks';
-    }
-    
-    // Check for Blocks checkout via request
-    if (isset($_POST['wc-blocks-checkout']) || isset($_GET['wc-blocks-checkout'])) {
-        return 'blocks';
-    }
-    
-    // Check user setting
-    $enable_blocks = $this->get_option('enable_blocks', 'classic');
-    if ($enable_blocks === 'blocks') {
-        return 'blocks';
-    }
-    
-    return 'classic';
-}
-private function get_selected_bank_from_multiple_sources($order) {
-    $selected_bank = '';
-    
-    // 1. Dari POST data (priority tertinggi)
-    if (isset($_POST['nicepay_bank']) && !empty($_POST['nicepay_bank'])) {
-        $selected_bank = sanitize_text_field($_POST['nicepay_bank']);
-        error_log("Bank from POST: " . $selected_bank);
-    }
-    
-    // 2. Dari WooCommerce Blocks data
-    if (empty($selected_bank) && isset($_POST['payment_data'])) {
-        $payment_data = json_decode(stripslashes($_POST['payment_data']), true);
-        if (isset($payment_data['nicepay_bank'])) {
-            $selected_bank = sanitize_text_field($payment_data['nicepay_bank']);
-            error_log("Bank from Blocks payment data: " . $selected_bank);
-        }
-    }
-    
-    // 3. Dari session
-    if (empty($selected_bank) && WC()->session) {
-        $selected_bank = WC()->session->get('nicepay_selected_bank');
-        error_log("Bank from session: " . ($selected_bank ?: 'Not set'));
-    }
-    
-    // 4. Dari order meta
-    if (empty($selected_bank)) {
-        $selected_bank = $order->get_meta('_nicepay_selected_bank');
-        error_log("Bank from order meta: " . ($selected_bank ?: 'Not set'));
-    }
-    
-    // Debug log
-    error_log("Bank selection sources: " . json_encode([
-        'post_nicepay_bank' => $_POST['nicepay_bank'] ?? 'not set',
-        'payment_data' => isset($_POST['payment_data']) ? 'present' : 'not set',
-        'session_bank' => WC()->session ? WC()->session->get('nicepay_selected_bank') : 'session not available',
-        'order_meta_bank' => $order->get_meta('_nicepay_selected_bank'),
-        'final_selected' => $selected_bank
-    ]));
-    
-    return $selected_bank;
-}
-
-/**
- * FITUR BARU: Save bank selection dengan context
- */
-private function save_bank_selection($order, $selected_bank, $checkout_mode) {
-    // Save to order meta
-    $order->update_meta_data('_nicepay_selected_bank', $selected_bank);
-    $order->update_meta_data('_nicepay_checkout_mode', $checkout_mode);
-    $order->save();
-    
-    // Save to session if available
-    if (WC()->session) {
-        WC()->session->set('nicepay_selected_bank', $selected_bank);
-    }
-    
-    error_log("Bank selection saved: $selected_bank in $checkout_mode mode");
-}
-
-/**
- * FITUR BARU: Get mode-specific success response
- */
-private function get_success_response($order, $checkout_mode) {
-    $success_response = array(
-        'result'   => 'success',
-        'redirect' => $this->get_return_url($order),
-    );
-    
-    // Add mode-specific data if needed
-    if ($checkout_mode === 'blocks') {
-        $success_response['checkout_mode'] = 'blocks';
-    }
-    
-    return $success_response;
-}
 
     /**
      * Get NICEPay access token
@@ -1034,13 +879,6 @@ private function get_success_response($order, $checkout_mode) {
             wp_send_json_error('Invalid callback data', 400);
         }
     }
-    /**
-     * Generate formatted timestamp for NICEPay API
-     */
-    protected function generate_formatted_timestamp() {
-        $date = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
-        return $date->format('Y-m-d\TH:i:sP');
-    }
 
     /**
      * Check payment status from NICEPay
@@ -1161,4 +999,11 @@ private function get_success_response($order, $checkout_mode) {
         }
     }
     
+    /**
+     * Generate formatted timestamp for NICEPay API
+     */
+    private function generate_formatted_timestamp() {
+        $date = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
+        return $date->format('Y-m-d\TH:i:sP');
+    }
 }

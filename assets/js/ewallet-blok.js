@@ -1,218 +1,235 @@
+
 (function() {
-    'use strict';
-
-    // Check if WooCommerce Blocks and required dependencies are available
-    if (typeof wc === 'undefined' || typeof wc.wcBlocksRegistry === 'undefined') {
-        console.error('NICEPay: WooCommerce Blocks registry not found');
+    console.log("Loading NICEPay Ewallet Plugin");
+    
+    // Gunakan React elements dari WP
+     const wpElement = window.wp && window.wp.element;
+    if (!wpElement) {
+        console.error("WP Element not available");
         return;
     }
-
-    const { registerPaymentMethod } = wc.wcBlocksRegistry;
-    const { createElement, useState, useEffect } = wp.element;
-    const { __ } = wp.i18n;
-
-    // Check if nicepayEwalletData is available
-    if (typeof nicepayEwalletData === 'undefined') {
-        console.error('NICEPay: nicepayEwalletData not found');
-        return;
-    }
-
-    console.log('NICEPay E-wallet Blocks integration loaded');
-    console.log('Available mitra:', nicepayEwalletData.enabled_mitra);
-
-    // E-wallet Selection Component
-    const EwalletPaymentComponent = (props) => {
+    
+    const { createElement, useState, useEffect } = wpElement;
+    
+    // Ewallet Component
+    const NicepayEwalletComponent = () => {
         const [selectedMitra, setSelectedMitra] = useState('');
         const [isLoading, setIsLoading] = useState(false);
+        // Gunakan nicepayEwalletData untuk blocks
+        const mitra = window.nicepayEwalletData?.enabled_mitra || [];
+        console.log('Available mitra (Ewallet):', mitra);
 
-        // Save mitra selection to session
-        const saveMitraSelection = async (mitraCode) => {
-            if (!mitraCode) return;
+          // Load saved selection on mount
+        useEffect(() => {
+            const savedMitra = sessionStorage.getItem('nicepay_selected_mitra');
+            if (savedMitra) {
+                setSelectedMitra(savedMitra);
+            }
+        }, []);
 
+        const handleMitraChange = (e) => {
+            const selectedMitraCode = e.target.value;
+            console.log('Mitra selected:', selectedMitraCode);
+            setSelectedMitra(selectedMitraCode);
+            
+            // Save to session storage immediately
+            if (selectedMitraCode) {
+                sessionStorage.setItem('nicepay_selected_mitra', selectedMitraCode);
+            } else {
+                sessionStorage.removeItem('nicepay_selected_mitra');
+            }
+            
+            // Also try to save via AJAX if available
+            saveMitraSelection(selectedMitraCode);
+        };
+
+        const saveMitraSelection = (mitraCode) => {
+            console.log('Attempting to save mitra selection:', mitraCode);
+            
+            // Validate required data
+            if (typeof jQuery === 'undefined') {
+                console.warn('jQuery not available, using sessionStorage only');
+                return;
+            }
+            
+            if (typeof nicepayEwalletData === 'undefined') {
+                console.warn('nicepayEwalletData not available, using sessionStorage only');
+                return;
+            }
+            
+            if (!nicepayEwalletData.ajax_url || !nicepayEwalletData.nonce) {
+                console.warn('Required AJAX data missing, using sessionStorage only');
+                return;
+            }
+            
             setIsLoading(true);
             
-            try {
-                const response = await fetch(nicepayEwalletData.ajax_url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: new URLSearchParams({
-                        action: 'set_nicepay_mitra',
-                        mitra_code: mitraCode,
-                        nonce: nicepayEwalletData.nonce
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (data.success) {
-                    console.log('Mitra saved successfully:', data.data.mitra_code);
-                } else {
-                    console.error('Failed to save mitra:', data.data);
-                    throw new Error(data.data || 'Failed to save e-wallet selection');
-                }
-            } catch (error) {
-                console.error('Error saving mitra selection:', error);
-                // You might want to show user-friendly error here
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        // Handle mitra selection change
-        const handleMitraChange = (event) => {
-            const mitraCode = event.target.value;
-            setSelectedMitra(mitraCode);
-            
-            if (mitraCode) {
-                saveMitraSelection(mitraCode);
-            }
-        };
-
-        // Validate selection before payment
-        useEffect(() => {
-            // This will run when component mounts or selectedMitra changes
-            if (selectedMitra) {
-                // You can add additional validation logic here
-                console.log('Selected mitra updated:', selectedMitra);
-            }
-        }, [selectedMitra]);
-
-        return createElement('div', {
-            className: 'nicepay-ewallet-blocks-container',
-            style: {
-                margin: '15px 0',
-                padding: '15px',
-                background: '#f8f8f8',
-                borderRadius: '4px'
-            }
-        }, [
-            // Logo section
-            createElement('div', {
-                key: 'header',
-                className: 'nicepay-ewallet-header',
-                style: {
-                    marginBottom: '15px',
-                    textAlign: 'center',
-                    padding: '10px 0'
-                }
-            }, [
-                createElement('div', {
-                    key: 'logos',
-                    className: 'nicepay-ewallet-logos',
-                    style: {
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        gap: '15px',
-                        marginBottom: '20px'
-                    }
-                }, [
-                    createElement('img', {
-                        key: 'logo',
-                        src: nicepayEwalletData.pluginUrl + '/assets/images/ewallet1.png',
-                        alt: 'E-wallet Logo',
-                        style: {
-                            height: '30px',
-                            width: 'auto'
-                        }
-                    })
-                ])
-            ]),
-            
-            // Selection section
-            createElement('div', {
-                key: 'select',
-                className: 'nicepay-ewallet-select',
-                style: {
-                    margin: '10px 0'
-                }
-            }, [
-                createElement('label', {
-                    key: 'label',
-                    htmlFor: 'nicepay-ewallet-select-blocks',
-                    style: {
-                        display: 'block',
-                        marginBottom: '5px',
-                        fontWeight: 'bold'
-                    }
-                }, __('Pilih E-wallet:', 'nicepay-wc')),
-                
-                createElement('select', {
-                    key: 'select-input',
-                    id: 'nicepay-ewallet-select-blocks',
-                    value: selectedMitra,
-                    onChange: handleMitraChange,
-                    disabled: isLoading,
-                    required: true,
-                    style: {
-                        width: '100%',
-                        padding: '8px',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        fontSize: '14px'
-                    }
-                }, [
-                    createElement('option', {
-                        key: 'default',
-                        value: ''
-                    }, __('Pilih E-wallet', 'nicepay-wc')),
+            jQuery.ajax({
+                url: nicepayEwalletData.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'set_nicepay_mitra',
+                    mitra_code: mitraCode,
+                    nonce: nicepayEwalletData.nonce
+                },
+                timeout: 10000, // 10 second timeout
+                success: function(response) {
+                    console.log('Mitra selection saved successfully:', response);
+                    setIsLoading(false);
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error saving mitra selection:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        responseText: xhr.responseText,
+                        error: error
+                    });
+                    setIsLoading(false);
                     
-                    ...nicepayEwalletData.enabled_mitra.map(mitra => 
-                        createElement('option', {
-                            key: mitra.value,
-                            value: mitra.value
-                        }, mitra.label)
-                    )
-                ]),
-                
-                // Loading indicator
-                isLoading && createElement('div', {
-                    key: 'loading',
-                    style: {
-                        marginTop: '10px',
-                        fontSize: '12px',
-                        color: '#666'
+                    // Even if AJAX fails, sessionStorage should work
+                    console.log('AJAX failed, but sessionStorage should still work');
+                }
+            });
+        };
+
+
+         if (!Array.isArray(mitra) || mitra.length === 0) {
+            console.log('No active mitra available');
+            return createElement('div', { className: 'nicepay-ewallet-container' }, [
+                createElement('p', { key: 'no-mitra' }, 'Tidak ada e-wallet yang tersedia saat ini.')
+            ]);
+        }
+         return createElement('div', { className: 'nicepay-ewallet-container' }, [
+            createElement('div', { className: 'nicepay-ewallet-header', key: 'header' }, [
+                createElement('img', { 
+                    src: (nicepayEwalletData?.pluginUrl || '') + '/assets/images/ewallet1.png', 
+                    alt: 'E-wallet Options', 
+                    className: 'nicepay-ewallet-image',
+                    key: 'ewallet-icon',
+                    onError: function(e) {
+                        console.warn('E-wallet icon failed to load');
+                        e.target.style.display = 'none';
                     }
-                }, __('Saving selection...', 'nicepay-wc'))
-            ])
+                }),
+            ]),
+            createElement('div', { className: 'nicepay-ewallet-select', key: 'ewallet-select' }, [
+                createElement('label', { 
+                    htmlFor: 'nicepay-ewallet-select',
+                    key: 'label'
+                }, 'Pilih E-wallet:'),
+                createElement('select',
+                    {
+                        name: 'nicepay_mitra',
+                        id: 'nicepay-ewallet-select',
+                        onChange: handleMitraChange,
+                        value: selectedMitra,
+                        disabled: isLoading,
+                        key: 'select',
+                        required: true
+                    },
+                    [
+                        createElement('option', { value: '', key: 'default' }, 'Pilih E-wallet'),
+                        ...mitra.map(m => createElement('option', 
+                            { 
+                                value: m.value || m.code, 
+                                key: m.value || m.code 
+                            }, 
+                            m.label || m.name
+                        ))
+                    ]
+                ),
+                isLoading && createElement('span', { 
+                    className: 'nicepay-loading',
+                    key: 'loading'
+                }, 'Menyimpan...')
+            ]),
+            createElement('p', { 
+                className: 'nicepay-ewallet-instruction',
+                key: 'instruction'
+            }, 'Silakan pilih e-wallet untuk pembayaran Anda.'),
+            
+            // Hidden input for form submission
+            createElement('input', {
+                type: 'hidden',
+                name: 'nicepay_selected_mitra',
+                value: selectedMitra,
+                key: 'hidden-input'
+            })
         ]);
     };
 
-    // Payment method configuration
-    const nicepayEwalletPaymentMethod = {
-        name: 'nicepay_ewallet',
-        label: createElement('span', {
-            style: { display: 'flex', alignItems: 'center', gap: '8px' }
-        }, [
-            createElement('img', {
-                key: 'icon',
-                src: nicepayEwalletData.pluginUrl + '/assets/images/ewallet1.png',
-                alt: 'NICEPay E-wallet',
-                style: {
-                    height: '24px',
-                    width: 'auto'
-                }
-            }),
-            createElement('span', {
-                key: 'text'
-            }, __('NICEPAY E-wallet', 'nicepay-wc'))
-        ]),
-        content: createElement(EwalletPaymentComponent),
-        edit: createElement(EwalletPaymentComponent),
-        canMakePayment: () => {
-            // Check if e-wallet options are available
-            return nicepayEwalletData.enabled_mitra && nicepayEwalletData.enabled_mitra.length > 0;
-        },
-        ariaLabel: __('NICEPay E-wallet payment method', 'nicepay-wc'),
-        supports: {
-            features: ['products']
+  const safelyRegisterEwalletPaymentMethod = function() {
+        console.log("Attempting to register Ewallet Payment Method");
+        
+        if (!window.wc || !window.wc.wcBlocksRegistry) {
+            console.warn('WooCommerce Blocks registry not yet available for Ewallet, retrying...');
+            setTimeout(safelyRegisterEwalletPaymentMethod, 500);
+            return;
+        }
+        
+        try {
+            // Hindari pendaftaran berulang
+            if (window.nicepay_ewallet_registered === true) {
+                console.log("Ewallet already registered, skipping");
+                return;
+            }
+            
+            const { registerPaymentMethod } = window.wc.wcBlocksRegistry;
+            
+            registerPaymentMethod({
+                name: "nicepay_ewallet",
+                label: "NICEPay E-wallet",
+                content: createElement(NicepayEwalletComponent),
+                edit: createElement(NicepayEwalletComponent),
+                canMakePayment: () => {
+                    // Check if mitra is selected
+                    const selectedMitra = sessionStorage.getItem('nicepay_selected_mitra');
+                    if (!selectedMitra) {
+                        console.warn('No e-wallet selected');
+                        return false;
+                    }
+                    return true;
+                },
+                ariaLabel: "NICEPay E-wallet payment method",
+                supports: {
+                    features: ['products'],
+                },
+            });
+            
+            // Set flag global
+            window.nicepay_ewallet_registered = true;
+            console.log("Ewallet Payment Method successfully registered");
+            
+        } catch (error) {
+            console.error("Error registering Ewallet Payment Method:", error);
+            console.error("Error details:", error.message);
+            console.error("Error stack:", error.stack);
+            
+            // Retry dengan delay jika gagal
+            setTimeout(safelyRegisterEwalletPaymentMethod, 1000);
         }
     };
 
-    // Register the payment method
-    registerPaymentMethod(nicepayEwalletPaymentMethod);
+    // Multi-layered initialization
+    const initializeEwalletPayment = () => {
+        console.log("Initializing E-wallet Payment Method");
+        console.log("WC Registry available:", !!window.wc && !!window.wc.wcBlocksRegistry);
+        console.log("NicepayEwalletData available:", !!window.nicepayEwalletData);
+        
+        // Delay registration to ensure all dependencies are loaded
+        setTimeout(safelyRegisterEwalletPaymentMethod, 100);
+    };
 
-    console.log('NICEPay E-wallet payment method registered for Blocks checkout');
+    // Cek apakah document sudah siap
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeEwalletPayment);
+    } else {
+        initializeEwalletPayment();
+    }
+    
+    // Fallback: Register setelah window load
+    window.addEventListener('load', function() {
+        setTimeout(safelyRegisterEwalletPaymentMethod, 200);
+    });
+    
 })();

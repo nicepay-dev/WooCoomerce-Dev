@@ -16,7 +16,7 @@ if (!defined('ABSPATH')) {
  * WC_Gateway_Nicepay_CC Class
  * CCV2
  */
-class WC_Gateway_Nicepay_CC extends WC_Nicepay_Payment_Gateway {
+class WC_Gateway_Nicepay_CC extends WC_Payment_Gateway {
 
     protected $redirect_url;
     protected $environment;
@@ -32,7 +32,7 @@ class WC_Gateway_Nicepay_CC extends WC_Nicepay_Payment_Gateway {
         if (ob_get_level() == 0) {
             ob_start();
         }
-         $this->id                 = 'nicepay_cc';
+        $this->id                 = 'nicepay_cc';
         $this->method_title       = __('NICEPay Credit Card', 'nicepay-wc');
         $this->method_description = __('Accept credit card payments through NICEPay payment gateway.', 'nicepay-wc');
         $this->has_fields         = true;
@@ -41,36 +41,23 @@ class WC_Gateway_Nicepay_CC extends WC_Nicepay_Payment_Gateway {
         $this->redirect_url = str_replace('https:', 'http:', add_query_arg('wc-api', 'WC_Gateway_NICEPay_CCV2', home_url('/')));
         $this->method_description = __('Allows payments using NICEPay Credit Card.', 'nicepay-cc-snap-gateway');
 
-         $this->init_form_fields();
-        $this->init_settings();
-
         // Define user set variables
         $this->title        = $this->get_option('title', __('Credit Card', 'nicepay-wc'));
         $this->description  = $this->get_option('description', __('Pay securely using your credit card.', 'nicepay-wc'));
         $this->instructions = $this->get_option('instructions');
         
-        $this->environment = $this->get_option('environment', 'sandbox');
-        
-        // FIX: Properly set credentials
-        $this->merchant_id  = $this->get_option('iMid', 'IONPAYTEST');
-        $this->merchant_key = $this->get_option('mKey', '33F49GnCMS1mFYlGXisbUDzVf2ATWCl9k3R++d5hDd3Frmuos/XLx8XhXpe+LDYAbpGKZYSwtlyyLOtS/8aD7A==');
-        
-        // Get CC-specific endpoints
-        $this->api_endpoints = $this->get_cc_endpoints();
-        
-        $this->Instmount1 = $this->get_option('instmntMon1');
-        $this->Instmount3 = $this->get_option('instmntMon3');
-        $this->Instmount6 = $this->get_option('instmntMon6');
-        $this->Instmount12 = $this->get_option('instmntMon12');
-        $this->reduceStock = $this->get_option('reduceStock');
-        
-        // Initialize installment options properly
-        $this->installment_options = array(
-            'fullpayment' => $this->get_option('instmntMon1', 'yes'),
-            'installment_3' => $this->get_option('instmntMon3', 'no'),
-            'installment_6' => $this->get_option('instmntMon6', 'no'),
-            'installment_12' => $this->get_option('instmntMon12', 'no')
-        );
+        $this->environment = get_option('nicepay_environment', 'sandbox');
+        $this->api_endpoints = $this->get_api_endpoints();
+        $this->init_form_fields();
+        $this->init_settings();
+
+        // add_action('wp_enqueue_scripts', array($this, 'enqueue_classic_mode'));
+
+        // if ($this->get_option('enable_blocks') === 'classic') {
+        //     add_action('wp_enqueue_scripts', array($this, 'enqueue_classic_mode'));
+        // } else {
+        //     add_action('wp_enqueue_scripts', array($this, 'enqueue_blocks_mode'));
+        // }
 
         if ($this->environment === 'sandbox') {
             @ini_set('display_errors', 1);
@@ -79,116 +66,41 @@ class WC_Gateway_Nicepay_CC extends WC_Nicepay_Payment_Gateway {
         }
 
         $this->enabled = $this->get_option('enabled');
+        $this->title = $this->get_option('title');
+        $this->description = $this->get_option('description');
+        $this->iMid = $this->get_option('iMid');
+        $this->mKey = $this->get_option('mKey');
+        $this->Instmount1 = $this->get_option('instmntMon1');
+        $this->Instmount3 = $this->get_option('instmntMon3');
+        $this->Instmount6 = $this->get_option('instmntMon6');
+        $this->Instmount12 = $this->get_option('instmntMon12');
+        //---------------------------------------------//
+        $this->reduceStock   = $this->get_option( 'reduceStock' );
+        //---------------------------------------------//
+        
+        // Get installment options
+        // $this->installment_options = array(
+        //     'fullpayment' => $this->get_option('fullpayment', 'yes'),
+        //     'installment_3' => $this->get_option('installment_3', 'no'),
+        //     'installment_6' => $this->get_option('installment_6', 'no'),
+        //     'installment_12' => $this->get_option('installment_12', 'no')
+        // );
         
         // Set the icon
         $this->icon = apply_filters('woocommerce_nicepay_cc_icon', NICEPAY_WC_PLUGIN_URL . 'assets/images/cc-logo.png');
         
-        // CALL PARENT CONSTRUCTOR - SANGAT PENTING!
-        parent::__construct();
+        // Set the callback URL
+        // $this->notify_url = WC()->api_request_url('WC_Gateway_Nicepay_CC');
         
         // Actions
+        add_action('woocommerce_update_options_payment_gateways_' . $this->id, array($this, 'process_admin_options'));
         add_action('woocommerce_api_nicepay_return', array($this, 'handle_return_url'));
         add_action('woocommerce_settings_save_' . $this->id, array($this, 'update_api_endpoints'));
         add_action('woocommerce_api_wc_gateway_nicepay_ccv2', array($this, 'handle_notification'));
         add_action('woocommerce_thankyou_' . $this->id, array($this, 'thankyou_page'), 1);
         
         // Enqueue scripts for checkout
-        if (is_checkout()) {
-            add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
-        }
-        
-        error_log("NICEPay CC gateway initialized with merchant_id: " . $this->merchant_id);
-    }
-
-    
-   public function enqueue_scripts() {
-        // Check if we're on checkout page
-        if (!is_checkout()) {
-            return;
-        }
-        error_log('Enqueuing NICEPay CC scripts');
-
-        // Enqueue CSS styles
-        wp_enqueue_style(
-            'nicepay-cc-style',
-            NICEPAY_WC_PLUGIN_URL . 'assets/css/nicepay.css',
-            array(),
-            NICEPAY_WC_VERSION
-        );
-
-        // Check if WooCommerce Blocks is being used
-        $is_block_checkout = false;
-        if (class_exists('\Automattic\WooCommerce\Blocks\Payments\Integrations\AbstractPaymentMethodType')) {
-            // WooCommerce Blocks is available
-            $is_block_checkout = true;
-        }
-
-        $blocks_file = NICEPAY_WC_PLUGIN_URL . 'assets/js/cc-blok.js';
-        $classic_file = NICEPAY_WC_PLUGIN_URL . 'assets/js/cc-classic.js';
-        error_log('CC Block JS path: ' . $blocks_file);
-        error_log('CC Classic JS path: ' . $classic_file);
-
-        if ($is_block_checkout) {
-            // Enqueue Blocks mode JS
-            wp_enqueue_script(
-                'nicepay-cc-blok',
-                $blocks_file,
-                array('jquery', 'wp-element', 'wp-hooks'),
-                NICEPAY_WC_VERSION,
-                true
-            );
-            $script_handle = 'nicepay-cc-blok';
-        } else {
-            // Enqueue Classic mode JS
-            wp_enqueue_script(
-                'nicepay-cc-classic',
-                $classic_file,
-                array('jquery'),
-                NICEPAY_WC_VERSION,
-                true
-            );
-            $script_handle = 'nicepay-cc-classic';
-        }
-
-        // Localize script with data
-        wp_localize_script(
-            $script_handle,
-            'nicepayData',
-            array(
-                'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce' => wp_create_nonce('nicepay-cc-nonce'),
-                'pluginUrl' => NICEPAY_WC_PLUGIN_URL,
-                'enableCC' => get_option('nicepay_enable_cc', 'yes'),
-                'installmentOptions' => $this->get_available_installments()
-            )
-        );
-        
-        error_log('NICEPay CC scripts enqueued successfully');
-    }
-
-    public function is_available() {
-   // Debug logs
-        error_log('NICEPay CC is_available check started');
-        
-        // Check the original availability
-        $enabled = $this->get_option('enabled') === 'yes';
-        
-        // Log detailed information
-        $merchant_id_set = !empty($this->merchant_id);
-        $merchant_key_set = !empty($this->merchant_key);
-
-        // Hasil akhir
-        $is_available = $enabled && $merchant_id_set && $merchant_key_set;
-        
-        // Log detailed information
-        error_log('NICEPay CC enabled setting: ' . ($enabled ? 'yes' : 'no'));
-        error_log('NICEPay CC merchant_id: ' . $this->merchant_id);
-        error_log('NICEPay CC merchant_key: ' . (!empty($this->merchant_key) ? 'set' : 'empty'));
-        
-        // UNTUK TESTING - uncomment baris ini jika masih tidak muncul
-        // return true;
-        
-        return $enabled;
+        // add_action('wp_enqueue_scripts', array($this, 'payment_scripts'));
     }
 
     /**
