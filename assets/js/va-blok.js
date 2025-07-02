@@ -1,25 +1,38 @@
-(function() {
-    console.log("Loading NICEPay VA Payment Method");
+jQuery(document).ready(function($) {
+    console.log('VA Complete JS loaded');
+    console.log('Available nicepayData:', nicepayData);
     
-    // Gunakan React elements dari WP
-    const wpElement = window.wp && window.wp.element;
-    if (!wpElement) {
-        console.error("WP Element not available");
-        return;
+    let selectedBank = '';
+    let checkoutMode = 'classic'; // default
+    
+    // FITUR 1: Detect checkout mode
+    function detectCheckoutMode() {
+        if ($('.wc-block-checkout').length > 0) {
+            checkoutMode = 'blocks';
+            console.log('WooCommerce Blocks checkout detected');
+        } else if ($('form.checkout').length > 0) {
+            checkoutMode = 'classic';
+            console.log('Classic WooCommerce checkout detected');
+        }
+        return checkoutMode;
     }
     
-    const { createElement, useState } = wpElement;
-    
-    // VA Component
-    const NicepayVAComponent = () => {
-        const [selectedBank, setSelectedBank] = useState('');
-        const [isLoading, setIsLoading] = useState(false);
+    // FITUR 2: Render bank list dengan logo (seperti kode asli)
+    function renderBankList() {
+        console.log('Rendering bank list');
         
+        const bankContainer = $('.nicepay-va-bank-select');
+        if (bankContainer.length === 0) {
+            console.log('Bank container not found');
+            return;
+        }
+        
+        // Bank list dengan logo (sesuai kode asli)
         const banks = [
-            { code: 'BMRI', name: 'Bank Mandiri' },
-            { code: 'BNIN', name: 'Bank BNI' },
-            { code: 'BRIN', name: 'Bank BRI' },
-            { code: 'BBBA', name: 'Bank Permata' },
+            { code: 'BMRI', name: 'Bank Mandiri', logo: 'mandiri.png' },
+            { code: 'BNIN', name: 'Bank BNI', logo: 'bni.png' },
+            { code: 'BRIN', name: 'Bank BRI', logo: 'bri.png' },
+           { code: 'BBBA', name: 'Bank Permata' },
             { code: 'CENA', name: 'Bank BCA' },
             { code: 'IBBK', name: 'Maybank' },
             { code: 'BBBB', name: 'Bank Permata Syariah' },
@@ -28,206 +41,224 @@
             { code: 'BDIN', name: 'Bank Danamon' },
             { code: 'PDJB', name: 'Bank BJB' },
             { code: 'YUDB', name: 'Bank Neo Commerce (BNC)' },
-            { code: 'BDKI', name: 'Bank DKI' },
+            { code: 'BDKI', name: 'Bank DKI' }
         ];
-        useEffect(() => {
-            const savedBank = sessionStorage.getItem('nicepay_selected_bank');
-            if (savedBank) {
-                setSelectedBank(savedBank);
-            }
-        }, []);
-        const handleBankChange = (e) => {
-            const selectedBankCode = e.target.value;
-            console.log('Bank selected:', selectedBankCode);
-            setSelectedBank(selectedBankCode);
-            
-            // Save to session storage immediately
-            if (selectedBankCode) {
-                sessionStorage.setItem('nicepay_selected_bank', selectedBankCode);
-            } else {
-                sessionStorage.removeItem('nicepay_selected_bank');
-            }
-            
-            // Also try to save via AJAX if available
-            saveBankSelection(selectedBankCode);
-        };
         
-         const saveBankSelection = (bankCode) => {
-            console.log('Attempting to save bank selection:', bankCode);
-            
-            // Validate required data
-            if (typeof jQuery === 'undefined') {
-                console.warn('jQuery not available, using sessionStorage only');
-                return;
-            }
-            
-            if (typeof nicepayData === 'undefined') {
-                console.warn('nicepayData not available, using sessionStorage only');
-                return;
-            }
-            
-            if (!nicepayData.ajax_url || !nicepayData.nonce) {
-                console.warn('Required AJAX data missing, using sessionStorage only');
-                return;
-            }
-            
-            setIsLoading(true);
-            
-            jQuery.ajax({
-                url: nicepayData.ajax_url,
-                type: 'POST',
-                data: {
-                    action: 'set_nicepay_bank',
-                    bank_code: bankCode,
-                    security: nicepayData.nonce
-                },
-                timeout: 10000, // 10 second timeout
-                success: function(response) {
-                    console.log('Bank selection saved successfully:', response);
-                    setIsLoading(false);
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error saving bank selection:', {
-                        status: xhr.status,
-                        statusText: xhr.statusText,
-                        responseText: xhr.responseText,
-                        error: error
-                    });
-                    setIsLoading(false);
-                    
-                    // Even if AJAX fails, sessionStorage should work
-                    console.log('AJAX failed, but sessionStorage should still work');
-                }
-            });
-        };
-
-         return createElement('div', { className: 'nicepay-va-container' }, [
-            createElement('div', { className: 'nicepay-va-header', key: 'header' }, [
-                createElement('img', { 
-                    src: (nicepayData?.pluginUrl || '') + 'assets/images/logobank.png', 
-                    alt: 'Bank Icon', 
-                    className: 'nicepay-va-bank-icon',
-                    key: 'bank-icon',
-                    onError: function(e) {
-                        console.warn('Bank icon failed to load');
-                        e.target.style.display = 'none';
-                    }
-                }),
-            ]),
-           createElement('div', { className: 'nicepay-va-bank-select', key: 'bank-select' }, [
-                createElement('label', { 
-                    htmlFor: 'nicepay-bank-select',
-                    key: 'label'
-                }, 'Pilih Bank:'),
-                createElement('select',
-                    {
-                        name: 'nicepay_bank',
-                        id: 'nicepay-bank-select',
-                        onChange: handleBankChange,
-                        value: selectedBank,
-                        disabled: isLoading,
-                        key: 'select',
-                        required: true
-                    },
-                    [
-                        createElement('option', { value: '', key: 'default' }, 'Pilih Bank'),
-                        ...banks.map(bank =>
-                            createElement('option', { value: bank.code, key: bank.code }, bank.name)
-                        )
-                    ]
-                ),
-                isLoading && createElement('span', { 
-                    className: 'nicepay-loading',
-                    key: 'loading'
-                }, 'Menyimpan...')
-            ]),
-            createElement('p', { 
-                className: 'nicepay-va-instruction',
-                key: 'instruction'
-            }, 'Silakan pilih bank untuk pembayaran Virtual Account Anda.'),
-            
-            // Hidden input for form submission
-            createElement('input', {
-                type: 'hidden',
-                name: 'nicepay_selected_bank',
-                value: selectedBank,
-                key: 'hidden-input'
-            })
-        ]);
-    };
-
-
-    // Fungsi untuk registrasi yang aman
-   const safelyRegisterVAPaymentMethod = function() {
-        console.log("Attempting to register VA Payment Method");
+        // Create visual bank selection (seperti kode asli)
+        let bankListHtml = '<div class="nicepay-bank-list">';
+        banks.forEach(bank => {
+            bankListHtml += `
+                <div class="nicepay-bank-item" data-bank-code="${bank.code}">
+                    <img src="${nicepayData.pluginUrl}assets/images/${bank.logo}" 
+                         alt="${bank.name}" 
+                         class="nicepay-bank-logo"
+                         onerror="this.style.display='none'">
+                    <span class="nicepay-bank-name">${bank.name}</span>
+                </div>
+            `;
+        });
+        bankListHtml += '</div>';
         
-        // Periksa apakah registry tersedia
-        if (!window.wc || !window.wc.wcBlocksRegistry) {
-            console.warn('WooCommerce Blocks registry not yet available for VA, retrying...');
-            setTimeout(safelyRegisterVAPaymentMethod, 500);
+        // Insert after dropdown
+        if ($('.nicepay-bank-list').length === 0) {
+            bankContainer.after(bankListHtml);
+        }
+    }
+    
+    // FITUR 3: Save bank selection (diperbaiki)
+    function saveBankSelection(bankCode) {
+        console.log('Attempting to save bank selection:', bankCode);
+        
+        if (!bankCode) {
+            console.log('No bank code provided');
             return;
         }
         
-        try {
-            // Hanya jalankan sekali menggunakan flag
-            if (window.nicepay_va_registered === true) {
-                console.log("VA already registered, skipping");
-                return;
-            }
-            
-            const { registerPaymentMethod } = window.wc.wcBlocksRegistry;
-            
-            registerPaymentMethod({
-                name: "nicepay_va",
-                label: "NICEPay Virtual Account",
-                content: createElement(NicepayVAComponent),
-                edit: createElement(NicepayVAComponent),
-                canMakePayment: () => {
-                    // Check if bank is selected
-                    const selectedBank = sessionStorage.getItem('nicepay_selected_bank');
-                    if (!selectedBank) {
-                        console.warn('No bank selected for VA payment');
-                        return false;
-                    }
-                    return true;
-                },
-                ariaLabel: "NICEPay Virtual Account payment method",
-                supports: {
-                    features: ['products'],
-                },
-            });
-            
-            // Set flag global
-            window.nicepay_va_registered = true;
-            console.log("VA Payment Method successfully registered");
-            
-        } catch (error) {
-            console.error("Error registering VA Payment Method:", error);
-            console.error("Error details:", error.message);
-            
-            // Retry dengan delay jika gagal
-            setTimeout(safelyRegisterVAPaymentMethod, 1000);
-        }
-    };
-
-    // Multi-layered initialization
-    const initializeVAPayment = () => {
-        console.log("Initializing VA Payment Method");
+        selectedBank = bankCode;
         
-        // Delay registration to ensure all dependencies are loaded
-        setTimeout(safelyRegisterVAPaymentMethod, 100);
-    };
-
-    // Cek apakah document sudah siap
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initializeVAPayment);
-    } else {
-        initializeVAPayment();
+        const ajaxData = {
+            action: 'set_nicepay_bank',
+            bank_code: bankCode,
+            nonce: nicepayData.nonce,
+            security: nicepayData.nonce
+        };
+        
+        console.log('AJAX Data being sent:', ajaxData);
+        
+        $.ajax({
+            url: nicepayData.ajax_url,
+            type: 'POST',
+            data: ajaxData,
+            dataType: 'json',
+            success: function(response) {
+                console.log('Bank selection saved successfully:', response);
+                
+                // Update UI
+                updateBankSelection(bankCode);
+                
+                // Set hidden input untuk form submission
+                ensureHiddenInput(bankCode);
+                
+                // Session storage backup
+                if (typeof(Storage) !== "undefined") {
+                    sessionStorage.setItem('nicepay_selected_bank', bankCode);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error saving bank selection:', {
+                    status: status,
+                    error: error,
+                    response: xhr.responseText,
+                    statusCode: xhr.status
+                });
+            }
+        });
     }
     
-    // Fallback: Register setelah window load
-    window.addEventListener('load', function() {
-        setTimeout(safelyRegisterVAPaymentMethod, 200);
-    });
+    // FITUR 4: Update UI bank selection
+    function updateBankSelection(bankCode) {
+        // Update dropdown
+        $('#nicepay-bank-select').val(bankCode);
+        
+        // Update visual bank list
+        $('.nicepay-bank-item').removeClass('selected');
+        $(`.nicepay-bank-item[data-bank-code="${bankCode}"]`).addClass('selected');
+        
+        console.log('UI updated for bank:', bankCode);
+    }
     
-})();
+    // FITUR 5: Ensure hidden input exists
+    function ensureHiddenInput(bankCode) {
+        let hiddenInput = $('input[name="nicepay_bank"]');
+        if (hiddenInput.length === 0) {
+            const formSelector = checkoutMode === 'blocks' ? 
+                'form.wc-block-checkout__form' : 'form.checkout';
+            hiddenInput = $('<input type="hidden" name="nicepay_bank">');
+            $(formSelector).append(hiddenInput);
+            console.log('Created hidden input for', checkoutMode, 'mode');
+        }
+        hiddenInput.val(bankCode);
+        console.log('Hidden input set with value:', bankCode);
+    }
+    
+    // FITUR 6: Event handlers
+    function setupEventHandlers() {
+        // Dropdown selection
+        $(document).on('change', '#nicepay-bank-select', function() {
+            const bankCode = $(this).val();
+            console.log('Bank selected from dropdown:', bankCode);
+            
+            if (bankCode) {
+                saveBankSelection(bankCode);
+            }
+        });
+        
+        // Visual bank list selection
+        $(document).on('click', '.nicepay-bank-item', function() {
+            const bankCode = $(this).data('bank-code');
+            console.log('Bank selected from visual list:', bankCode);
+            
+            if (bankCode) {
+                saveBankSelection(bankCode);
+            }
+        });
+        
+        // FITUR 7: Checkout validation berdasarkan mode
+        if (checkoutMode === 'classic') {
+            $(document).on('checkout_place_order_nicepay_va', function() {
+                return validateBankSelection();
+            });
+        } else if (checkoutMode === 'blocks') {
+            // WooCommerce Blocks validation
+            if (typeof wp !== 'undefined' && wp.hooks) {
+                wp.hooks.addFilter(
+                    'woocommerce_checkout_payment_method_data_nicepay_va',
+                    'nicepay-va',
+                    function(data) {
+                        const bankCode = getSelectedBank();
+                        if (bankCode) {
+                            data.nicepay_bank = bankCode;
+                        }
+                        return data;
+                    }
+                );
+            }
+        }
+        
+        // Form submission monitoring
+        $(document).on('submit', 'form.checkout, form.wc-block-checkout__form', function() {
+            console.log('Form submission detected in', checkoutMode, 'mode');
+            
+            const bankCode = getSelectedBank();
+            if (bankCode) {
+                ensureHiddenInput(bankCode);
+            }
+        });
+    }
+    
+    // FITUR 8: Get selected bank dari berbagai source
+    function getSelectedBank() {
+        return $('#nicepay-bank-select').val() || 
+               $('input[name="nicepay_bank"]').val() ||
+               sessionStorage.getItem('nicepay_selected_bank') ||
+               selectedBank;
+    }
+    
+    // FITUR 9: Validate bank selection
+    function validateBankSelection() {
+        const bankCode = getSelectedBank();
+        
+        console.log('Validation check for', checkoutMode, 'mode:', {
+            bankCode: bankCode,
+            fromSelect: $('#nicepay-bank-select').val(),
+            fromHidden: $('input[name="nicepay_bank"]').val(),
+            fromStorage: sessionStorage.getItem('nicepay_selected_bank')
+        });
+        
+        if (!bankCode) {
+            alert('Please select a bank for payment');
+            return false;
+        }
+        
+        ensureHiddenInput(bankCode);
+        return true;
+    }
+    
+    // FITUR 10: Restore selection on load
+    function restoreSelection() {
+        const savedBank = sessionStorage.getItem('nicepay_selected_bank');
+        if (savedBank) {
+            updateBankSelection(savedBank);
+            ensureHiddenInput(savedBank);
+            console.log('Restored bank selection:', savedBank);
+        }
+    }
+    
+    // INITIALIZATION
+    function initialize() {
+        console.log('Initializing VA payment method');
+        
+        // 1. Detect checkout mode
+        detectCheckoutMode();
+        
+        // 2. Render bank list visual
+        renderBankList();
+        
+        // 3. Setup event handlers
+        setupEventHandlers();
+        
+        // 4. Restore previous selection
+        restoreSelection();
+        
+        console.log('VA initialization complete for', checkoutMode, 'mode');
+    }
+    
+    // Start initialization
+    initialize();
+    
+    // Re-initialize on checkout update (untuk AJAX updates)
+    $(document.body).on('updated_checkout', function() {
+        console.log('Checkout updated - reinitializing');
+        setTimeout(initialize, 100);
+    });
+});

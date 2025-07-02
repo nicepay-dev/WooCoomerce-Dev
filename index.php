@@ -1,4 +1,3 @@
-<!-- File utama plugin index.php -->
 <?php
 /**
  * Plugin Name: NICEPay Payment Gateway for WooCommerce
@@ -41,15 +40,16 @@ class NICEPay_WC {
         return self::$instance;
     }
     
+    
     /**
      * Construct the plugin
      */
     public function __construct() {
         // Hook into WordPress/WooCommerce
-        add_action('plugins_loaded', array($this, 'init'));
+         add_action('plugins_loaded', array($this, 'init'));
         
         // Register activation hook
-        register_activation_hook(__FILE__, array($this, 'activate'));
+         register_activation_hook(__FILE__, array($this, 'activate'));
         
         // Add settings link to plugin page
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($this, 'plugin_action_links'));
@@ -100,10 +100,22 @@ class NICEPay_WC {
      */
     private function includes() {
         // Include abstract gateway class
-        include_once NICEPAY_WC_PLUGIN_DIR . 'includes/abstract-wc-nicepay-payment-gateway.php';
+        if (file_exists(NICEPAY_WC_PLUGIN_DIR . 'includes/abstract-wc-nicepay-payment-gateway.php')) {
+            include_once NICEPAY_WC_PLUGIN_DIR . 'includes/abstract-wc-nicepay-payment-gateway.php';
+        }
         
         // Include admin class
-        include_once NICEPAY_WC_PLUGIN_DIR . 'includes/admin/class-wc-nicepay-admin.php';
+        if (file_exists(NICEPAY_WC_PLUGIN_DIR . 'includes/admin/class-wc-nicepay-admin.php')) {
+            include_once NICEPAY_WC_PLUGIN_DIR . 'includes/admin/class-wc-nicepay-admin.php';
+        }
+
+        if (file_exists(NICEPAY_WC_PLUGIN_DIR . 'includes/integrations/class-wc-nicepay-blocks-integration.php')) {
+    include_once NICEPAY_WC_PLUGIN_DIR . 'includes/integrations/class-wc-nicepay-blocks-integration.php';
+    error_log("NICEPay: Block integration file loaded");
+} else {
+    error_log("NICEPay: Block integration file NOT FOUND");
+}
+
         
         // Include available gateways
         $this->include_gateways();
@@ -112,57 +124,53 @@ class NICEPay_WC {
     /**
      * Include available payment gateways
      */
-    private function include_gateways() {
-        // Get enabled gateways from settings
-        $enabled_gateways = array(
-            'va' => get_option('nicepay_enable_va', 'yes'),
-            'cc' => get_option('nicepay_enable_cc', 'yes'),
-            'ewallet' => get_option('nicepay_enable_ewallet', 'yes')
+     private function include_gateways() {
+        // Array of gateway files to include
+        $gateway_files = array(
+            'va' => NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-va.php',
+            'cc' => NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-cc.php',
+            'ewallet' => NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-ewallet.php',
+            'qris' => NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-qris.php',
+            'payloan' => NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-payloan.php',
+            'cvs' => NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-cvs.php'
         );
         
-        // Always include all gateway files regardless of enabled status
-        // This ensures admin can still configure them
-        
-        // Virtual Account
-        include_once NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-va.php';
-        
-        // Credit Card
-        if (file_exists(NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-cc.php')) {
-            include_once NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-cc.php';
-        }
-        
-        // E-Wallet
-        if (file_exists(NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-ewallet.php')) {
-            include_once NICEPAY_WC_PLUGIN_DIR . 'includes/gateway/class-wc-gateway-nicepay-ewallet.php';
+        foreach ($gateway_files as $gateway_type => $file_path) {
+            if (file_exists($file_path)) {
+                include_once $file_path;
+                error_log("NICEPay: {$gateway_type} gateway file loaded");
+            } else {
+                error_log("NICEPay: {$gateway_type} gateway file NOT FOUND at: {$file_path}");
+            }
         }
     }
     
     /**
      * Add payment gateways to WooCommerce
      */
-    public function add_gateways($gateways) {
-        error_log('Adding NICEPay gateways to WooCommerce');
-        error_log('VA enabled: ' . (get_option('nicepay_enable_va', 'yes') === 'yes' ? 'yes' : 'no'));
-    
-        // Add gateways based on settings
-        if (get_option('nicepay_enable_va', 'yes') === 'yes') {
-            $gateways[] = 'WC_Gateway_Nicepay_VA';
-            error_log('Added NICEPay VA gateway');
+   public function add_gateways($gateways) {
+        // Array of gateway classes to check and add
+        $gateway_classes = array(
+            'WC_Gateway_Nicepay_VA',
+            'WC_Gateway_Nicepay_CC', 
+            'WC_Gateway_Nicepay_Ewallet',
+            'WC_Gateway_Nicepay_QRIS',
+            'WC_Gateway_Nicepay_Payloan',
+            'WC_Gateway_Nicepay_CVS'
+        );
+        
+        foreach ($gateway_classes as $class_name) {
+            if (class_exists($class_name)) {
+                $gateways[] = $class_name;
+                error_log("NICEPay: Gateway class {$class_name} registered");
+            } else {
+                error_log("NICEPay: Gateway class {$class_name} NOT FOUND");
+            }
         }
         
-        if (get_option('nicepay_enable_cc', 'yes') === 'yes' && 
-            class_exists('WC_Gateway_Nicepay_CC')) {
-            $gateways[] = 'WC_Gateway_Nicepay_CC';
-        }
-        
-        if (get_option('nicepay_enable_ewallet', 'yes') === 'yes' && 
-            class_exists('WC_Gateway_Nicepay_Ewallet')) {
-            $gateways[] = 'WC_Gateway_Nicepay_Ewallet';
-        }
-        
+        error_log('NICEPay: Total gateways registered: ' . count($gateways));
         return $gateways;
     }
-    
     /**
      * Add menu page for NICEPay settings
      */
@@ -180,25 +188,95 @@ class NICEPay_WC {
     /**
      * Display settings page
      */
-    public function settings_page() {
-        include_once NICEPAY_WC_PLUGIN_DIR . 'includes/admin/view/html-admin-settings.php';
+   public function settings_page() {
+        ?>
+        <div class="wrap">
+            <h1><?php _e('NICEPay Settings', 'nicepay-wc'); ?></h1>
+            <p><?php _e('Configure your NICEPay payment gateway settings below. You can also configure individual payment methods in WooCommerce > Settings > Payments.', 'nicepay-wc'); ?></p>
+            
+            <div class="card">
+                <h2><?php _e('Quick Links', 'nicepay-wc'); ?></h2>
+                <p>
+                    <a href="<?php echo admin_url('admin.php?page=wc-settings&tab=checkout&section=nicepay_ewallet'); ?>" class="button button-primary">
+                        <?php _e('Configure E-Wallet', 'nicepay-wc'); ?>
+                    </a>
+                    <?php if (class_exists('WC_Gateway_Nicepay_VA')): ?>
+                    <a href="<?php echo admin_url('admin.php?page=wc-settings&tab=checkout&section=nicepay_va'); ?>" class="button">
+                        <?php _e('Configure Virtual Account', 'nicepay-wc'); ?>
+                    </a>
+                    <?php endif; ?>
+                    <?php if (class_exists('WC_Gateway_Nicepay_CC')): ?>
+                    <a href="<?php echo admin_url('admin.php?page=wc-settings&tab=checkout&section=nicepay_cc'); ?>" class="button">
+                        <?php _e('Configure Credit Card', 'nicepay-wc'); ?>
+                    </a>
+                    <?php endif; ?>
+                    <a href="<?php echo admin_url('admin.php?page=wc-settings&tab=checkout'); ?>" class="button">
+                        <?php _e('All Payment Methods', 'nicepay-wc'); ?>
+                    </a>
+                </p>
+            </div>
+            
+             <div class="card">
+                <h2><?php _e('Available Payment Methods', 'nicepay-wc'); ?></h2>
+                <ul>
+                    <?php if (class_exists('WC_Gateway_Nicepay_Ewallet')): ?>
+                    <li>✅ <strong>E-Wallet</strong> - OVO, DANA, LinkAja, ShopeePay</li>
+                    <?php else: ?>
+                    <li>❌ <strong>E-Wallet</strong> - Class not found</li>
+                    <?php endif; ?>
+                    <?php if (class_exists('WC_Gateway_Nicepay_VA')): ?>
+                    <li>✅ <strong>Virtual Account</strong> - Bank transfers</li>
+                    <?php else: ?>
+                    <li>❌ <strong>Virtual Account</strong> - Class not found</li>
+                    <?php endif; ?>
+                    <?php if (class_exists('WC_Gateway_Nicepay_CC')): ?>
+                    <li>✅ <strong>Credit Card</strong> - Visa, Mastercard, JCB</li>
+                    <?php else: ?>
+                    <li>❌ <strong>Credit Card</strong> - Class not found</li>
+                    <?php endif; ?>
+                </ul>
+            </div>
+            
+          <div class="card">
+                <h2><?php _e('Debug Information', 'nicepay-wc'); ?></h2>
+                <table class="form-table">
+                    <tr>
+                        <th scope="row"><?php _e('Plugin Version', 'nicepay-wc'); ?></th>
+                        <td><?php echo NICEPAY_WC_VERSION; ?></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php _e('WooCommerce Version', 'nicepay-wc'); ?></th>
+                        <td><?php echo defined('WC_VERSION') ? WC_VERSION : __('Not detected', 'nicepay-wc'); ?></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php _e('PHP Version', 'nicepay-wc'); ?></th>
+                        <td><?php echo PHP_VERSION; ?></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php _e('Abstract Class', 'nicepay-wc'); ?></th>
+                        <td><?php echo class_exists('WC_Nicepay_Payment_Gateway') ? '✅ Loaded' : '❌ Not found'; ?></td>
+                    </tr>
+                    <tr>
+                        <th scope="row"><?php _e('Gateway Classes', 'nicepay-wc'); ?></th>
+                        <td>
+                            E-wallet: <?php echo class_exists('WC_Gateway_Nicepay_Ewallet') ? '✅' : '❌'; ?><br>
+                            VA: <?php echo class_exists('WC_Gateway_Nicepay_VA') ? '✅' : '❌'; ?><br>
+                            CC: <?php echo class_exists('WC_Gateway_Nicepay_CC') ? '✅' : '❌'; ?>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        <?php
     }
     
     /**
      * Register plugin settings
      */
     public function register_settings() {
-        // Register settings
+        // Register global settings
         register_setting('nicepay_settings', 'nicepay_environment');
-        register_setting('nicepay_settings', 'nicepay_merchant_id');
-        register_setting('nicepay_settings', 'nicepay_merchant_key');
-        register_setting('nicepay_settings', 'nicepay_channel_id');
-        register_setting('nicepay_settings', 'nicepay_private_key');
-        
-        // Register gateway enable settings
-        register_setting('nicepay_settings', 'nicepay_enable_va');
-        register_setting('nicepay_settings', 'nicepay_enable_cc');
-        register_setting('nicepay_settings', 'nicepay_enable_ewallet');
+        register_setting('nicepay_settings', 'nicepay_debug_mode');
     }
     
     /**
@@ -210,25 +288,19 @@ class NICEPay_WC {
             return;
         }
         
-        // Enqueue admin CSS
-        wp_enqueue_style(
-            'nicepay-admin-style',
-            NICEPAY_WC_PLUGIN_URL . 'assets/css/admin.css',
-            array(),
-            NICEPAY_WC_VERSION
-        );
-        
-        // Enqueue admin JS
-        wp_enqueue_script(
-            'nicepay-admin-script',
-            NICEPAY_WC_PLUGIN_URL . 'assets/js/admin.js',
-            array('jquery'),
-            NICEPAY_WC_VERSION,
-            true
-        );
+        // Check if CSS file exists before enqueuing
+        $css_file = NICEPAY_WC_PLUGIN_DIR . 'assets/css/admin.css';
+        if (file_exists($css_file)) {
+            wp_enqueue_style(
+                'nicepay-admin-style',
+                NICEPAY_WC_PLUGIN_URL . 'assets/css/admin.css',
+                array(),
+                NICEPAY_WC_VERSION
+            );
+        }
     }
     
-    /**
+     /**
      * Plugin activation hook
      */
     public function activate() {
@@ -237,23 +309,19 @@ class NICEPay_WC {
             update_option('nicepay_environment', 'sandbox');
         }
         
-        if (get_option('nicepay_enable_va') === false) {
-            update_option('nicepay_enable_va', 'yes');
-        }
+        // Create necessary directories
+        $upload_dir = wp_upload_dir();
+        $nicepay_dir = $upload_dir['basedir'] . '/nicepay-logs';
         
-        if (get_option('nicepay_enable_cc') === false) {
-            update_option('nicepay_enable_cc', 'yes');
+        if (!file_exists($nicepay_dir)) {
+            wp_mkdir_p($nicepay_dir);
         }
-        
-        if (get_option('nicepay_enable_ewallet') === false) {
-            update_option('nicepay_enable_ewallet', 'yes');
-        }
-        
-        // Create necessary database tables if needed
-        // $this->create_tables();
         
         // Flush rewrite rules to ensure our custom endpoints work
         flush_rewrite_rules();
+        
+        // Log activation
+        error_log('NICEPay plugin activated');
     }
     
     /**
@@ -261,15 +329,28 @@ class NICEPay_WC {
      */
     public function plugin_action_links($links) {
         $settings_link = '<a href="' . admin_url('admin.php?page=nicepay-settings') . '">' . __('Settings', 'nicepay-wc') . '</a>';
-        array_unshift($links, $settings_link);
+        $docs_link = '<a href="https://docs.nicepay.co.id" target="_blank">' . __('Docs', 'nicepay-wc') . '</a>';
+        
+        array_unshift($links, $settings_link, $docs_link);
         return $links;
     }
 }
 
-// Start the plugin
+// Start the plugin - menghindari duplikasi inisialisasi
 function nicepay_wc_init() {
     return NICEPay_WC::get_instance();
 }
+// AKTIFKAN PLUGIN - ini yang penting!
+add_action('plugins_loaded', 'nicepay_wc_init', 11);
+
+
+// Deactivation hook
+register_deactivation_hook(__FILE__, function() {
+    // Clean up scheduled events
+    wp_clear_scheduled_hook('check_nicepay_payment_status');
+    error_log('NICEPay plugin deactivated');
+});
+
 
 // Initialize plugin
-nicepay_wc_init();
+// nicepay_wc_init();

@@ -1,59 +1,83 @@
-jQuery(function($) {
-    console.log('NICEPay Ewallet classic checkout initialized');
+jQuery(document).ready(function($) {
+    'use strict';
 
-    function createEwalletSelector() {
-        if (!nicepayData || !nicepayData.enabled_mitra) {
-            console.error('NICEPay configuration is missing');
-            return $('<div>').text('Payment configuration is not available');
-        }
-
-        const container = $('<div/>', {
-            class: 'nicepay-ewallet-container'
-        });
-
-        // Header dengan logo
-        const header = $('<div/>', {
-            class: 'nicepay-ewallet-header'
-        }).append(
-            $('<img/>', {
-                src: nicepayData.pluginUrl + '/config/ewallet1.png',
-                alt: 'Ewallet Logo',
-                class: 'nicepay-ewallet-icon'
-            })
-        );
-
-        // Ewallet selector
-        const ewalletSelect = $('<div/>', {
-            class: 'nicepay-ewallet-select'
-        }).append(
-            $('<label/>', {
-                for: 'nicepay-ewallet-select',
-                text: 'Pilih E-wallet:'
-            }),
-            $('<select/>', {
-                name: 'nicepay_mitra',
-                id: 'nicepay-ewallet-select'
-            }).append(
-                $('<option/>', {
-                    value: '',
-                    text: 'Pilih E-wallet'
-                }),
-                nicepayData.enabled_mitra.map(mitra => 
-                    $('<option/>', {
-                        value: mitra.value,
-                        text: mitra.label
-                    })
-                )
-            )
-        );
-        const errorContainer = $('<div/>', {
-            class: 'nicepay-ewallet-error',
-            style: 'display: none; color: red; margin-top: 10px;'
-        });
-
-        container.append(header, ewalletSelect, errorContainer);
-        return container;
+    // Check if nicepayData is available
+    if (typeof nicepayData === 'undefined') {
+        console.error('NICEPay: nicepayData not found');
+        return;
     }
+
+    console.log('NICEPay Classic Checkout initialized');
+    console.log('Available mitra:', nicepayData.enabled_mitra);
+
+    // Handle e-wallet selection
+    $(document).on('change', '#nicepay-ewallet-select', function() {
+        var selectedMitra = $(this).val();
+        console.log('E-wallet selected:', selectedMitra);
+
+        if (selectedMitra) {
+            // Send AJAX request to save selection
+            $.ajax({
+                url: nicepayData.ajax_url,
+                type: 'POST',
+                data: {
+                    action: 'set_nicepay_mitra',
+                    mitra_code: selectedMitra,
+                    nonce: nicepayData.nonce
+                },
+                beforeSend: function() {
+                    console.log('Saving mitra selection...');
+                },
+                success: function(response) {
+                    console.log('Mitra selection response:', response);
+                    if (response.success) {
+                        console.log('Mitra saved successfully:', response.data.mitra_code);
+                        
+                        // Enable place order button if it was disabled
+                        $('#place_order').prop('disabled', false);
+                        
+                        // Remove any previous error messages
+                        $('.woocommerce-error, .woocommerce-message').remove();
+                        
+                        // Show success message (optional)
+                        // $('form.checkout').before('<div class="woocommerce-message">E-wallet selected: ' + response.data.mitra_code + '</div>');
+                    } else {
+                        console.error('Failed to save mitra:', response.data);
+                        alert('Error: ' + response.data);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error:', error);
+                    console.error('Response:', xhr.responseText);
+                    alert('Network error occurred. Please try again.');
+                }
+            });
+        }
+    });
+      $(document).on('click', '#place_order', function(e) {
+        // Check if NICEPay e-wallet is selected as payment method
+        var selectedPayment = $('input[name="payment_method"]:checked').val();
+        
+        if (selectedPayment === 'nicepay_ewallet') {
+            var selectedMitra = $('#nicepay-ewallet-select').val();
+            
+            if (!selectedMitra) {
+                e.preventDefault();
+                alert('Please select an e-wallet payment method.');
+                
+                // Scroll to e-wallet selection
+                $('html, body').animate({
+                    scrollTop: $('#nicepay-ewallet-select').offset().top - 100
+                }, 500);
+                
+                // Focus on select element
+                $('#nicepay-ewallet-select').focus();
+                
+                return false;
+            }
+        }
+    });
+    
     function showError(message, container) {
         const errorDiv = container.find('.nicepay-ewallet-error');
         errorDiv.text(message).show();
